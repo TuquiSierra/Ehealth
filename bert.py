@@ -1,4 +1,4 @@
-from transformers import BertTokenizer, BertModel
+gfrom transformers import BertTokenizer, BertModel
 import numpy as numpy
 import torch
 from scripts.anntools import Collection
