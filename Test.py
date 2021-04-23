@@ -14,6 +14,8 @@ from metrics import Accuracy, F1Score
 from tagger import get_tag_list
 from LSTMnn import MyLSTM
 
+from bert import bert_embedding
+
 
 c = Collection()
 
@@ -76,6 +78,7 @@ def line_to_tensor(line):
     tensor = torch.zeros(len(line), len(LETTERS))
     for i, c in enumerate(line):
         tensor[i][letter_to_index(c)] = 1
+    
     return tensor
 
 class RNN(nn.Module):
@@ -186,12 +189,25 @@ def predict(rnn, input_line):
 def sentence_to_tensor(sentence):
     words = sentence.text.split()
     sentence_tensor = []
-    for word in words:
+    for i,word in enumerate(words):
         sentence_tensor.append(line_to_tensor(word))
     sentence_tensor.append(torch.rand(28, len(LETTERS)))
     sentence_tensor = pad_sequence(sentence_tensor, batch_first=True)
     sentence_tensor = sentence_tensor[:sentence_tensor.shape[0]-1]
-    return sentence_tensor
+    
+    
+    
+    #appending bert
+    bert=bert_embedding(sentence.text)
+    final_sentence_tensor=torch.empty(sentence_tensor.shape[0], 28+ bert[0].shape[1],len(LETTERS))
+    for i in range(len(words)):
+        transp=torch.transpose(bert[i], 0, 1)
+        zeroes=torch.zeros(1, len(LETTERS))
+        zeroes[0][0]=1
+        mult=torch.matmul(transp, zeroes)
+        final_sentence_tensor[i] = torch.cat((sentence_tensor[i], mult), 0)
+    
+    return final_sentence_tensor
     
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()

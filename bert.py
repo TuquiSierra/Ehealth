@@ -7,7 +7,7 @@ import string
 import torch.nn as nn
 
 
-model =BertModel.from_pretrained('bert-base-multilingual-cased', output_hidden_states=True,)
+model =BertModel.from_pretrained('bert-base-multilingual-cased',from_tf=True,output_hidden_states=True,)
 tokenizer =BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 def bert_text_preparation(text, tokenizer):
@@ -28,10 +28,10 @@ def get_bert_embeddings(tokens_tensor, segments_tensors, model):
         outputs = model(tokens_tensor, segments_tensors)
         hidden_states = outputs[2][1:]
 
-    embeddings=[]
+    embeddings=torch.squeeze(hidden_states[-1])
     
     #adding up the last four hidden states
-    for i in range(1,5):
+    for i in range(2,5):
         token_embeddings=hidden_states[-i]
         embeddings=[x+y for (x, y) in zip(embeddings, torch.squeeze(token_embeddings, dim=0))]
         
@@ -41,7 +41,7 @@ def get_bert_embeddings(tokens_tensor, segments_tensors, model):
 
 def bert_embedding(text):
     tokenized_text, tokens_tensor, segment_tensors=bert_text_preparation(text, tokenizer)
-    list_token_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model) 
+    list_token_embeddings = get_bert_embeddings(tokens_tensor, segment_tensors, model) 
     i=1
     sentence_embedding=[]
     while i< len(tokenized_text)-1:
