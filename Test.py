@@ -13,8 +13,8 @@ from torch.utils.data import DataLoader
 from metrics import Accuracy, F1Score
 from tagger import get_tag_list
 from LSTMnn import MyLSTM
-
-from bert import bert_embedding
+import pickle
+# from bert import bert_embedding
 
 
 c = Collection()
@@ -94,7 +94,7 @@ def sentence_to_tensor(sentence):
     sentence_tensor = sentence_tensor[:sentence_tensor.shape[0]-1]
     
     #appending bert
-    bert=bert_embedding(sentence.text)
+    bert=bert_embeddings[sentence.text]
     final_sentence_tensor=torch.empty(sentence_tensor.shape[0], 28+ bert[0].shape[1],len(LETTERS))
     for i in range(len(words)):
         transp=torch.transpose(bert[i], 0, 1)
@@ -105,6 +105,7 @@ def sentence_to_tensor(sentence):
     
     return final_sentence_tensor
     
+bert_embeddings = pickle.load(open('bert_embeddings.data', 'rb'))
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005

@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn.functional import softmax
 
+
 BERT_VECTOR_SIZE = 178
 
 
