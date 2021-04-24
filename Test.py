@@ -115,7 +115,7 @@ def main():
     
     batch_sampler = EqualLenghtSequence(data, 2)
     data_loader = DataLoader(data, batch_sampler=batch_sampler)
-    n = MyLSTM(50, 50, len(TAGS), 113, 50, 50)
+    n = MyLSTM(50, 50, len(TAGS), 113, 50 )
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     metrics = {
         'acc' : lambda pred, true : Accuracy()(pred, true),

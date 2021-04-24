@@ -19,16 +19,15 @@ class MyLSTM(nn.Module):
                                  hidden_size=secondary_hidden_size, batch_first=True)
 
         self.word_linear = nn.Linear(
-            input_size=secondary_hidden_size, output_size=word_dimensions)
+            secondary_hidden_size, word_dimensions)
 
         # Sentence analysis
-        lstm_input_size = word_dimensions + BERT_VECTOR_SIZE
-        lstm_output_size = output_size*2
+        lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE
         self.sentence_lstm = nn.LSTM(
-            input_size=lstm_input_size, output_size=lstm_output_size, batch_first=True, bidirectional=True)
+            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True)
 
         self.output_layer = nn.Linear(
-            input_size=output_size*2, output_size=output_size)
+            self.main_hidden_size*2, self.output_size)
 
     def __init_main_hidden(self, batch_size):
         hidden_state = torch.randn(2, batch_size, self.main_hidden_size)
@@ -53,7 +52,7 @@ class MyLSTM(nn.Module):
         bert = self.__get_bert_vectors(X)
 
         # Words througth lstm
-        hidden = self.__init_main_hidden(batch_size)
+        hidden = self.__init_secondary_hidden(number_of_words)
         output, _ = self.word_lstm(letters, hidden)
 
         # Output from lstm througth linear to get word representations
@@ -61,17 +60,16 @@ class MyLSTM(nn.Module):
         word_representation = self.word_linear(word_representation)
 
         # Create ultimate vectors :)
-        words_representation = torch.cat((word_representation, bert), dim=1)
-
+        word_representation = torch.cat((word_representation, bert), dim=1)
         # Go to sentece level
         sentences = word_representation.view(batch_size, sentence_length, -1)
 
         # Sentences througth lstm
-        hidden = self.__init_secondary_hidden(batch_size)
+        hidden = self.__init_main_hidden(batch_size)
         output, _ = self.sentence_lstm(sentences, hidden)
 
         # Go to level word
-        words = output.view(batch_size * sentence_length, -1)
+        words = output.reshape(batch_size * sentence_length, -1)
 
         # Words througth last linear layer
         tags = self.output_layer(words)
@@ -80,7 +78,7 @@ class MyLSTM(nn.Module):
         tags_probs = softmax(tags, 1)
 
         # Go to sentence level
-        tags_probs = tags_probs.view(batch_size, sentence_length, -1)
+        # tags_probs = tags_probs.view(batch_size, sentence_length, -1)
 
         return tags_probs
 
