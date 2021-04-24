@@ -109,7 +109,7 @@ def sentence_to_tensor(sentence):
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005
 
-if __name__ == '__main__':
+def main():
     file = './2021/ref/training/medline.1200.es.txt'
     data = SentenceDataset(file, transform=sentence_to_tensor, target_transform=lambda l : torch.stack(tuple(map(label_to_tensor, l))))
     
@@ -122,3 +122,6 @@ if __name__ == '__main__':
         'f1' : lambda pred, true : F1Score()(torch.tensor(pred.argmax(dim=1), dtype=torch.float32), torch.tensor(true, dtype=torch.float32)) 
     }
     train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth', metrics=metrics)
+
+if __name__ == '__main__':
+    main()
