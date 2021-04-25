@@ -84,27 +84,41 @@ def line_to_tensor(line):
 def label_to_tensor(label):
     return torch.tensor([TAGS.index(label)])
 
+# def sentence_to_tensor(sentence):
+#     words = sentence.text.split()
+#     sentence_tensor = []
+#     for i,word in enumerate(words):
+#         sentence_tensor.append(line_to_tensor(word))
+#     sentence_tensor.append(torch.rand(28, len(LETTERS)))
+#     sentence_tensor = pad_sequence(sentence_tensor, batch_first=True)
+#     sentence_tensor = sentence_tensor[:sentence_tensor.shape[0]-1]
+    
+#     #appending bert
+#     bert=bert_embeddings[sentence.text]
+#     final_sentence_tensor=torch.empty(sentence_tensor.shape[0], 28+ bert[0].shape[1],len(LETTERS))
+#     for i in range(len(words)):
+#         transp=torch.transpose(bert[i], 0, 1)
+#         zeroes=torch.zeros(1, len(LETTERS))
+#         zeroes[0][0]=1
+#         mult=torch.matmul(transp, zeroes)
+#         final_sentence_tensor[i] = torch.cat((sentence_tensor[i], mult), 0)
+    
+#     return final_sentence_tensor
+
 def sentence_to_tensor(sentence):
     words = sentence.text.split()
-    sentence_tensor = []
-    for i,word in enumerate(words):
-        sentence_tensor.append(line_to_tensor(word))
-    sentence_tensor.append(torch.rand(28, len(LETTERS)))
-    sentence_tensor = pad_sequence(sentence_tensor, batch_first=True)
-    sentence_tensor = sentence_tensor[:sentence_tensor.shape[0]-1]
+    sentence_len = len(words)
+    words_representation = []
+    for word in words:
+        tensor = line_to_tensor(word)
+        word_representation = (len(word), tensor)
+        words_representation.append(word_representation)
+
+    bert_vectors = bert_embeddings[sentence.text]
+
+    return (sentence_len, words_representation, bert_vectors)
     
-    #appending bert
-    bert=bert_embeddings[sentence.text]
-    final_sentence_tensor=torch.empty(sentence_tensor.shape[0], 28+ bert[0].shape[1],len(LETTERS))
-    for i in range(len(words)):
-        transp=torch.transpose(bert[i], 0, 1)
-        zeroes=torch.zeros(1, len(LETTERS))
-        zeroes[0][0]=1
-        mult=torch.matmul(transp, zeroes)
-        final_sentence_tensor[i] = torch.cat((sentence_tensor[i], mult), 0)
-    
-    return final_sentence_tensor
-    
+
 bert_embeddings = pickle.load(open('bert_embeddings.data', 'rb'))
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()
@@ -114,8 +128,9 @@ def main():
     file = './2021/ref/training/medline.1200.es.txt'
     data = SentenceDataset(file, transform=sentence_to_tensor, target_transform=lambda l : torch.stack(tuple(map(label_to_tensor, l))))
     
-    batch_sampler = EqualLenghtSequence(data, 2)
-    data_loader = DataLoader(data, batch_sampler=batch_sampler)
+    # batch_sampler = EqualLenghtSequence(data, 2)
+    # data_loader = DataLoader(data, batch_sampler=batch_sampler)
+    data_loader = DataLoader(data, batch_size=2, collate_fn=lambda x : x)
     n = MyLSTM(50, 50, len(TAGS), 113, 50 )
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     metrics = {
