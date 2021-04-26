@@ -7,6 +7,13 @@ from torch import split, tensor
 from random import shuffle
 from functools import reduce
 
+
+def strip_punctuation(text):
+    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+    for ele in punc:
+        text = text.replace(ele, "") 
+    return text
+
 class WordDataset(Dataset):
     def __init__(self, file, transform=None, target_transform=None):
         collection = Collection()
@@ -60,7 +67,9 @@ class SentenceDataset(Dataset):
         data = []
         for sentence in collection.sentences:
             tags = get_tag_list(sentence)
-            data.append((sentence, tags))
+            # sentence_text = strip_punctuation(sentence.text)
+            sentence_text = sentence.text
+            data.append((sentence_text, tags))
         return data
 
 
