@@ -1,9 +1,10 @@
 import torch
 from torch import nn
 from torch.nn.functional import softmax
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
 
-BERT_VECTOR_SIZE = 178
+BERT_VECTOR_SIZE = 768
 
 
 class MyLSTM(nn.Module):
@@ -40,53 +41,117 @@ class MyLSTM(nn.Module):
         cell_state = torch.randn(1, batch_size, self.secondary_hidden_size)
         return (hidden_state, cell_state)
 
+    # def forward(self, X):
+    #     batch_size, sentence_length, *_ = X.shape
+
+    #     # Go to word level
+    #     number_of_words = sentence_length * batch_size
+    #     X = X.view(number_of_words, -1, self.number_of_letters)
+
+    #     # Separate word letters from BERT
+    #     words_lenght = X.shape[1] - BERT_VECTOR_SIZE
+    #     letters = X[:, :words_lenght, :]
+    #     bert = self.__get_bert_vectors(X)
+
+    #     # Words througth lstm
+    #     hidden = self.__init_secondary_hidden(number_of_words)
+    #     output, _ = self.word_lstm(letters, hidden)
+
+    #     # Output from lstm througth linear to get word representations
+    #     # word_representation = output[:, -1, :].squeeze(1)
+    #     # word_representation = output[:, x, ]
+    #     word_representation = self.word_linear(word_representation)
+
+    #     # Create ultimate vectors :)
+    #     word_representation = torch.cat((word_representation, bert), dim=1)
+    #     # Go to sentece level
+    #     sentences = word_representation.view(batch_size, sentence_length, -1)
+
+    #     # Sentences througth lstm
+    #     hidden = self.__init_main_hidden(batch_size)
+    #     output, _ = self.sentence_lstm(sentences, hidden)
+
+    #     # Go to level word
+    #     words = output.reshape(batch_size * sentence_length, -1)
+
+    #     # Words througth last linear layer
+    #     tags = self.output_layer(words)
+
+    #     # Get tags probs
+    #     tags_probs = softmax(tags, 1)
+
+    #     # Go to sentence level
+    #     # tags_probs = tags_probs.view(batch_size, sentence_length, -1)
+
+    #     return tags_probs
+
     def forward(self, X):
-        batch_size, sentence_length, *_ = X.shape
+        # X  =   [ (len_sentence, word_representation, bert_vectors) ] , len(X) = batch_size
+        # word_representation  =  [ (len_word, tensor) ], len(word_representation) = len_sentence
 
-        # Go to word level
-        number_of_words = sentence_length * batch_size
-        X = X.view(number_of_words, -1, self.number_of_letters)
+        batch_size = len(X)
+        sentences_sizes = list(map(lambda sample: sample[0], X))
+        word_sizes = []
+        word_tensors = []
+        bert_vectors = []
 
-        # Separate word letters from BERT
-        words_lenght = X.shape[1] - BERT_VECTOR_SIZE
-        letters = X[:, :words_lenght, :]
-        bert = self.__get_bert_vectors(X)
+        for sentence in X:
+            for word in sentence[1]:
+                word_sizes.append(word[0])
+                word_tensors.append(word[1])
 
-        # Words througth lstm
-        hidden = self.__init_secondary_hidden(number_of_words)
-        output, _ = self.word_lstm(letters, hidden)
+            for bert_vector in sentence[2]:
+                bert_vectors.append(torch.tensor(bert_vector))
 
-        # Output from lstm througth linear to get word representations
-        word_representation = output[:, -1, :].squeeze(1)
-        word_representation = self.word_linear(word_representation)
+        word_tensors = pad_sequence(word_tensors, batch_first=True)
+        word_tensors_packed = pack_padded_sequence(
+            word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
 
-        # Create ultimate vectors :)
-        word_representation = torch.cat((word_representation, bert), dim=1)
-        # Go to sentece level
-        sentences = word_representation.view(batch_size, sentence_length, -1)
+        hidden = self.__init_secondary_hidden(len(word_sizes))
+        output, _ = self.word_lstm(word_tensors_packed, hidden)
+        output, _ = pad_packed_sequence(output, batch_first=True)
 
-        # Sentences througth lstm
+        word_representation = self.__get_significant_lstm_output(
+            output, word_sizes)
+        bert_embeddings = torch.stack(bert_vectors).squeeze(1)
+        word_vectors = torch.cat((word_representation, bert_embeddings), dim=1)
+
+        sentences_tensors = []
+        count = 0
+        for size in sentences_sizes:
+            sentences_tensors.append(word_vectors[0: size])
+            count += size
+
+        sentences_vectors = pad_sequence(sentences_tensors, batch_first=True)
+        sentences_vectors_packed = pack_padded_sequence(
+            sentences_vectors, sentences_sizes, batch_first=True, enforce_sorted=False)
+
         hidden = self.__init_main_hidden(batch_size)
-        output, _ = self.sentence_lstm(sentences, hidden)
+        output, _ = self.sentence_lstm(sentences_vectors_packed, hidden)
 
-        # Go to level word
-        words = output.reshape(batch_size * sentence_length, -1)
+        output, _ = pad_packed_sequence(output, batch_first=True)
 
-        # Words througth last linear layer
+        sequence_vectors = self.__get_significants_sequence(output, sentences_sizes)
+        words = torch.cat(sequence_vectors)
+
         tags = self.output_layer(words)
 
-        # Get tags probs
         tags_probs = softmax(tags, 1)
-
-        # Go to sentence level
-        # tags_probs = tags_probs.view(batch_size, sentence_length, -1)
 
         return tags_probs
 
-    def __get_bert_vectors(self, X):
-        padded_bert = X[:, -BERT_VECTOR_SIZE:, :]
-        cleaned_bert = torch.zeros(padded_bert.shape[0], BERT_VECTOR_SIZE)
-        for i, vector in enumerate(padded_bert):
-            for j in range(BERT_VECTOR_SIZE):
-                cleaned_bert[i][j] = vector[j, 0]
-        return cleaned_bert
+
+    def __get_significants_sequence(self, input, sizes):
+        sequences = []
+        pad_length = input.shape[1]
+        for i, size in enumerate(sizes):
+            sequences.append(input[i, :size, :])
+        return sequences
+
+    def __get_significant_lstm_output(self, input, lenghts):
+        representation_dims = input.shape[-1]
+        number_of_words = input.shape[0]
+        output = torch.zeros(number_of_words, representation_dims)
+        for i, lenght in enumerate(lenghts):
+            output[i] = input[i, lenght - 1]
+        return output

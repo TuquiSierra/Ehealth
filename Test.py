@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 from metrics import Accuracy, F1Score
 from tagger import get_tag_list
 from LSTMnn import MyLSTM
+from functools import reduce
 import pickle
-# from bert import bert_embedding
+
 
 
 c = Collection()
@@ -105,8 +106,14 @@ def label_to_tensor(label):
     
 #     return final_sentence_tensor
 
+def strip_punctuation(text):
+    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+    for ele in punc:
+        text = text.replace(ele, "") 
+    return text
+
 def sentence_to_tensor(sentence):
-    words = sentence.text.split()
+    words = sentence.split()
     sentence_len = len(words)
     words_representation = []
     for word in words:
@@ -114,12 +121,20 @@ def sentence_to_tensor(sentence):
         word_representation = (len(word), tensor)
         words_representation.append(word_representation)
 
-    bert_vectors = bert_embeddings[sentence.text]
+    bert_vectors = bert_embeddings[sentence]
 
     return (sentence_len, words_representation, bert_vectors)
     
+def my_collate_fn(data):
+    #[(a, b)] -> ([a], [b])
+    def reduce_fn(acum, value):
+        return (acum[0] + [value[0]], acum[1] + [value[1]])
+    samples, targets = reduce(reduce_fn, data, ([], []))
+    targets = torch.cat(targets, dim=0).squeeze()
+    return samples, targets
 
-bert_embeddings = pickle.load(open('bert_embeddings.data', 'rb'))
+
+bert_embeddings = pickle.load(open('bert_embeddings_v2.data', 'rb'))
 # criterion = nn.NLLLoss()
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005
@@ -130,7 +145,7 @@ def main():
     
     # batch_sampler = EqualLenghtSequence(data, 2)
     # data_loader = DataLoader(data, batch_sampler=batch_sampler)
-    data_loader = DataLoader(data, batch_size=2, collate_fn=lambda x : x)
+    data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
     n = MyLSTM(50, 50, len(TAGS), 113, 50 )
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     metrics = {
