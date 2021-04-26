@@ -146,3 +146,6 @@ dmypy.json
 2021/training.zip
 .vscode/
 bert_embeddings.data
+bert_embeddings_without_punct_mark.data
+bert_embeddings_v2.data
+*.pth*
