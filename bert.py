@@ -10,8 +10,15 @@ import torch.nn as nn
 model =BertModel.from_pretrained('bert-base-multilingual-cased',from_tf=True,output_hidden_states=True,)
 tokenizer =BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
+def strip_punctuation(text):
+    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+    for ele in text: 
+        if ele in punc: 
+            text = text.replace(ele, "") 
+    return text
+
 def bert_text_preparation(text, tokenizer):
-    marked_text = "[CLS] " + text + " [SEP]"
+    marked_text = "[CLS] " + strip_punctuation(text) + " [SEP]"
     tokenized_text = tokenizer.tokenize(marked_text)
     indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
     segments_ids = [1]*len(indexed_tokens)
