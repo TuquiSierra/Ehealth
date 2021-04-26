@@ -5,6 +5,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 
 
 BERT_VECTOR_SIZE = 768
+POS_SIZE=4
 
 
 class MyLSTM(nn.Module):
@@ -24,7 +25,7 @@ class MyLSTM(nn.Module):
             secondary_hidden_size, word_dimensions)
 
         # Sentence analysis
-        lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE
+        lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE + POS_SIZE
         self.sentence_lstm = nn.LSTM(
             input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True)
 
@@ -94,6 +95,7 @@ class MyLSTM(nn.Module):
         word_sizes = []
         word_tensors = []
         bert_vectors = []
+        postag_vectors=[]
 
         for sentence in X:
             for word in sentence[1]:
@@ -102,6 +104,9 @@ class MyLSTM(nn.Module):
 
             for bert_vector in sentence[2]:
                 bert_vectors.append(torch.tensor(bert_vector))
+                
+            for postag in sentence[3]:
+                postag_vectors.append(torch.tensor(postag))
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
         word_tensors_packed = pack_padded_sequence(
@@ -114,7 +119,8 @@ class MyLSTM(nn.Module):
         word_representation = self.__get_significant_lstm_output(
             output, word_sizes)
         bert_embeddings = torch.stack(bert_vectors).squeeze(1)
-        word_vectors = torch.cat((word_representation, bert_embeddings), dim=1)
+        postags=torch.stack(postag_vectors).squeeze(1)
+        word_vectors = torch.cat((word_representation, bert_embeddings, postags), dim=1)
 
         sentences_tensors = []
         count = 0

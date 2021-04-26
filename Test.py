@@ -15,6 +15,7 @@ from tagger import get_tag_list
 from LSTMnn import MyLSTM
 from functools import reduce
 import pickle
+from postag import pos_tag
 
 
 
@@ -107,7 +108,7 @@ def label_to_tensor(label):
 #     return final_sentence_tensor
 
 def strip_punctuation(text):
-    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+    punc = '''!()[]{};:'"\,<>./?@#$%^&*_~'''
     for ele in punc:
         text = text.replace(ele, "") 
     return text
@@ -122,8 +123,9 @@ def sentence_to_tensor(sentence):
         words_representation.append(word_representation)
 
     bert_vectors = bert_embeddings[sentence]
-
-    return (sentence_len, words_representation, bert_vectors)
+    postag= pos_tag(strip_punctuation(" ".join(sentence.split())))
+        
+    return (sentence_len, words_representation, bert_vectors, postag)
     
 def my_collate_fn(data):
     #[(a, b)] -> ([a], [b])
