@@ -12,7 +12,7 @@ import pickle
 
 TAGS = ['B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'V_C', 'V_A', 'V_P', 'V_R', 'O', 'V' ] 
 LETTERS = string.printable + 'áéíóúÁÉÍÓÚñüö'
-DEVICE = "gpu:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 bert_embeddings = pickle.load(open('bert_embeddings_v2.data', 'rb'))

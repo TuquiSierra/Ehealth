@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn.functional import softmax
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
-DEVICE = "gpu:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 BERT_VECTOR_SIZE = 768
 POS_SIZE=4
