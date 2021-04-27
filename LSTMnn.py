@@ -80,12 +80,12 @@ class MyLSTM(nn.Module):
                 postag_vectors.append(torch.tensor(postag))
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
-        word_tensors.to(DEVICE)
+        word_tensors = word_tensors.to(DEVICE)
         word_sizes = torch.tensor(word_sizes)#.to(DEVICE)
         word_tensors_packed = pack_padded_sequence(
             word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
         # word_tensors_packed = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
-        word_tensors_packed.to(DEVICE)
+        wrod_tensors_packed = word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
         t, *_ = word_tensors_packed
