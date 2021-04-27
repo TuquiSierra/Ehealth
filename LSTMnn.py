@@ -42,54 +42,7 @@ class MyLSTM(nn.Module):
         cell_state = torch.randn(1, batch_size, self.secondary_hidden_size)
         return (hidden_state, cell_state)
 
-    # def forward(self, X):
-    #     batch_size, sentence_length, *_ = X.shape
-
-    #     # Go to word level
-    #     number_of_words = sentence_length * batch_size
-    #     X = X.view(number_of_words, -1, self.number_of_letters)
-
-    #     # Separate word letters from BERT
-    #     words_lenght = X.shape[1] - BERT_VECTOR_SIZE
-    #     letters = X[:, :words_lenght, :]
-    #     bert = self.__get_bert_vectors(X)
-
-    #     # Words througth lstm
-    #     hidden = self.__init_secondary_hidden(number_of_words)
-    #     output, _ = self.word_lstm(letters, hidden)
-
-    #     # Output from lstm througth linear to get word representations
-    #     # word_representation = output[:, -1, :].squeeze(1)
-    #     # word_representation = output[:, x, ]
-    #     word_representation = self.word_linear(word_representation)
-
-    #     # Create ultimate vectors :)
-    #     word_representation = torch.cat((word_representation, bert), dim=1)
-    #     # Go to sentece level
-    #     sentences = word_representation.view(batch_size, sentence_length, -1)
-
-    #     # Sentences througth lstm
-    #     hidden = self.__init_main_hidden(batch_size)
-    #     output, _ = self.sentence_lstm(sentences, hidden)
-
-    #     # Go to level word
-    #     words = output.reshape(batch_size * sentence_length, -1)
-
-    #     # Words througth last linear layer
-    #     tags = self.output_layer(words)
-
-    #     # Get tags probs
-    #     tags_probs = softmax(tags, 1)
-
-    #     # Go to sentence level
-    #     # tags_probs = tags_probs.view(batch_size, sentence_length, -1)
-
-    #     return tags_probs
-
     def forward(self, X):
-        # X  =   [ (len_sentence, word_representation, bert_vectors) ] , len(X) = batch_size
-        # word_representation  =  [ (len_word, tensor) ], len(word_representation) = len_sentence
-
         batch_size = len(X)
         sentences_sizes = list(map(lambda sample: sample[0], X))
         word_sizes = []
