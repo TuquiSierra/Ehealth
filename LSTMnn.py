@@ -56,9 +56,9 @@ class MyLSTM(nn.Module):
         return (hidden_state.to(DEVICE), cell_state.to(DEVICE))
 
     def __init_secondary_hidden(self, batch_size):
-        hidden_state = torch.randn(1, batch_size, self.secondary_hidden_size)
-        cell_state = torch.randn(1, batch_size, self.secondary_hidden_size)
-        return (hidden_state.to(DEVICE), cell_state.to(DEVICE))
+        hidden_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
+        cell_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
+        return (hidden_state, cell_state)
 
     def forward(self, X):
         batch_size = len(X)
@@ -88,9 +88,7 @@ class MyLSTM(nn.Module):
         wrod_tensors_packed = word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
-        t, *_ = word_tensors_packed
-        print(t.device)
-        output, _ = self.word_lstm(word_tensors_packed)#, hidden)
+        output, _ = self.word_lstm(word_tensors_packed, hidden)
         output, _ = pad_packed_sequence(output, batch_first=True)
 
         word_representation = self.__get_significant_lstm_output(
