@@ -98,7 +98,7 @@ class MyLSTM(nn.Module):
         bert_embeddings = torch.stack(bert_vectors).squeeze(1)
         postags=torch.stack(postag_vectors).squeeze(1)
         word_vectors = torch.cat((word_representation, bert_embeddings, postags), dim=1)
-        word_vectors.to(DEVICE)
+        word_vectors = word_vectors.to(DEVICE)
 
         sentences_tensors = []
         count = 0
