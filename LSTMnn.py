@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torch.nn.functional import softmax
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence, PackedSequence
+
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -82,7 +83,7 @@ class MyLSTM(nn.Module):
         word_sizes = torch.tensor(word_sizes).to(DEVICE)
         # word_tensors_packed = pack_padded_sequence(
         #     word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
-        word_tensors = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        word_tensors_packed = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
         word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
