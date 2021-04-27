@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn.functional import softmax
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
+DEVICE = "gpu:0" if torch.cuda.is_available() else "cpu"
 
 BERT_VECTOR_SIZE = 768
 POS_SIZE=4
@@ -10,6 +11,7 @@ POS_SIZE=4
 
 class MyLSTM(nn.Module):
     def __init__(self, word_dimensions, main_hidden_size, output_size, number_of_letters, secondary_hidden_size):
+        print(DEVICE)
         super(MyLSTM, self).__init__()
         self.word_dimensions = word_dimensions
         self.main_hidden_size = main_hidden_size
