@@ -64,10 +64,12 @@ class MyLSTM(nn.Module):
                 postag_vectors.append(torch.tensor(postag))
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
+        word_tensors.to(DEVICE)
         word_tensors_packed = pack_padded_sequence(
             word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
+        hidden.to(DEVICE)
         output, _ = self.word_lstm(word_tensors_packed, hidden)
         output, _ = pad_packed_sequence(output, batch_first=True)
 
@@ -76,6 +78,7 @@ class MyLSTM(nn.Module):
         bert_embeddings = torch.stack(bert_vectors).squeeze(1)
         postags=torch.stack(postag_vectors).squeeze(1)
         word_vectors = torch.cat((word_representation, bert_embeddings, postags), dim=1)
+        word_vectors.to(DEVICE)
 
         sentences_tensors = []
         count = 0
@@ -88,6 +91,7 @@ class MyLSTM(nn.Module):
             sentences_vectors, sentences_sizes, batch_first=True, enforce_sorted=False)
 
         hidden = self.__init_main_hidden(batch_size)
+        hidden.to(DEVICE)
         output, _ = self.sentence_lstm(sentences_vectors_packed, hidden)
 
         output, _ = pad_packed_sequence(output, batch_first=True)

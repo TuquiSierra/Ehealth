@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def __summarize_metric(summaries, metric):
     loss_avg_per_epoch = []
@@ -52,6 +53,7 @@ def epoch_train(dataloader, model, loss_fn, optimizer, metrics):
         batch_summary = {}
         pred = model(X)
         y = y.view(-1,1).squeeze(1)
+        y.to(DEVICE)
         loss = loss_fn(pred, y)
         optimizer.zero_grad()
         loss.backward()
