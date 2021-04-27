@@ -65,7 +65,7 @@ class MyLSTM(nn.Module):
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
         word_tensors.to(DEVICE)
-        word_sizes = torch.tensor(word_sizes).to(DEVICE)
+        word_sizes = torch.tensor(word_sizes)
         word_tensors_packed = pack_padded_sequence(
             word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
         word_tensors_packed.to(DEVICE)
