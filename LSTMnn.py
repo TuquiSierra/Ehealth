@@ -67,6 +67,7 @@ class MyLSTM(nn.Module):
         word_tensors.to(DEVICE)
         word_tensors_packed = pack_padded_sequence(
             word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
         output, _ = self.word_lstm(word_tensors_packed, hidden)
