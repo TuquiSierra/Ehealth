@@ -8,6 +8,20 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 BERT_VECTOR_SIZE = 768
 POS_SIZE=4
 
+def hotfix_pack_padded_sequence(input, lengths, batch_first=False, enforce_sorted=True):
+    lengths = torch.as_tensor(lengths, dtype=torch.int64)
+    lengths = lengths.cpu()
+    if enforce_sorted:
+        sorted_indices = None
+    else:
+        lengths, sorted_indices = torch.sort(lengths, descending=True)
+        sorted_indices = sorted_indices.to(input.device)
+        batch_dim = 0 if batch_first else 1
+        input = input.index_select(batch_dim, sorted_indices)
+
+    data, batch_sizes = \
+        torch._C._VariableFunctions._pack_padded_sequence(input, lengths, batch_first)
+    return PackedSequence(data, batch_sizes, sorted_indices)
 
 class MyLSTM(nn.Module):
     def __init__(self, word_dimensions, main_hidden_size, output_size, number_of_letters, secondary_hidden_size):
@@ -65,9 +79,10 @@ class MyLSTM(nn.Module):
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
         word_tensors.to(DEVICE)
-        word_sizes = torch.tensor(word_sizes)
-        word_tensors_packed = pack_padded_sequence(
-            word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        word_sizes = torch.tensor(word_sizes).to(DEVICE)
+        # word_tensors_packed = pack_padded_sequence(
+        #     word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        word_tensors = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
         word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
