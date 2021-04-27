@@ -37,7 +37,7 @@ class MyLSTM(nn.Module):
         # Word representation netword
         self.word_lstm = nn.LSTM(input_size=self.number_of_letters,
                                  hidden_size=secondary_hidden_size, batch_first=True)
-        self.word_lstm.to(DEVICE)
+        self.word_lstm = self.word_lstm.to(DEVICE)
 
         self.word_linear = nn.Linear(
             secondary_hidden_size, word_dimensions)

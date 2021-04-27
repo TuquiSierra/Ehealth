@@ -53,7 +53,7 @@ def epoch_train(dataloader, model, loss_fn, optimizer, metrics):
         batch_summary = {}
         pred = model(X)
         y = y.view(-1,1).squeeze(1)
-        y.to(DEVICE)
+        y = y.to(DEVICE)
         loss = loss_fn(pred, y)
         optimizer.zero_grad()
         loss.backward()
