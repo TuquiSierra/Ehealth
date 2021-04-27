@@ -81,14 +81,14 @@ class MyLSTM(nn.Module):
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
         word_tensors.to(DEVICE)
-        word_sizes = torch.tensor(word_sizes).to(DEVICE)
-        # word_tensors_packed = pack_padded_sequence(
-        #     word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
-        word_tensors_packed = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        word_sizes = torch.tensor(word_sizes)#.to(DEVICE)
+        word_tensors_packed = pack_padded_sequence(
+            word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        # word_tensors_packed = hotfix_pack_padded_sequence(word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
         word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
-        output, _ = self.word_lstm(word_tensors_packed, hidden)
+        output, _ = self.word_lstm(word_tensors_packed)#, hidden)
         output, _ = pad_packed_sequence(output, batch_first=True)
 
         word_representation = self.__get_significant_lstm_output(
