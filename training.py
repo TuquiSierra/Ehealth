@@ -24,7 +24,7 @@ def __plotting_metrics(summary):
     for i, (metric_name, metric_values) in enumerate(summary.items()):
         axs[i][0].set_title(metric_name)
         axs[i][0].plot(metric_values)
-    plt.subplots_adjust(hspace=1.0)
+    plt.subplots_adjust(hspace=4.0)
     plt.show()
 
 
