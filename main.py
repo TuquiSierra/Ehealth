@@ -3,7 +3,7 @@ from training import train
 from torch.utils.data import DataLoader
 from LSTMnn import MyLSTM
 from utils import sentence_to_tensor, my_collate_fn, label_to_tensor
-from metrics import Accuracy, F1Score
+from metrics import MyAccuracy
 import torch.nn as nn
 import string
 import torch
@@ -27,8 +27,8 @@ if __name__ == '__main__':
     n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
-    # metrics = {
-    #     'acc' : lambda pred, true : Accuracy()(pred, true),
+    metrics = {
+        'acc' : MyAccuracy,
     #     'f1' : lambda pred, true : F1Score()(torch.tensor(pred.argmax(dim=1), dtype=torch.float32), torch.tensor(true, dtype=torch.float32)) 
-    # }
-    train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth')#, metrics=metrics)
+    }
+    train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth', metrics=metrics)

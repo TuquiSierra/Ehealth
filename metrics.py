@@ -114,4 +114,22 @@ class Metric:
     
     def get_metric_value(self):
         raise NotImplementedError
+    
+class MyAccuracy(Metric):
+    def __init__(self):
+        self.total = 0
+        self.correct = 0
+    
+    def add_data(self, pred, real):
+        pred = pred.argmax(1)
+        for i in range(len(real)):
+            if real[i] == 17:
+                continue
+            self.total += 1
+            if real[i] == pred[i]:
+                self.correct += 1
+        
+    
+    def get_metric_value(self):
+        return self.correct * 100 / self.total
 

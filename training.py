@@ -22,8 +22,8 @@ class ComputeLoss:
 def __plotting_metrics(summary):
     _, axs = plt.subplots(len(summary), squeeze=False)
     for i, (metric_name, metric_values) in enumerate(summary.items()):
-        axs[0][i].set_title(metric_name)
-        axs[0][i].plot(metric_values)
+        axs[i][0].set_title(metric_name)
+        axs[i][0].plot(metric_values)
     plt.subplots_adjust(hspace=1.0)
     plt.show()
 
