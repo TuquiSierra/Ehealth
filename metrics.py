@@ -1,5 +1,6 @@
 import torch
 from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics._base import type_of_target
 
 class Accuracy:
     """
@@ -173,6 +174,8 @@ class MyPrecission(Metric):
         print(type(self.real))
         print(len(self.pred))
         print(len(self.real))
+        print(type_of_target(self.pred))
+        print(type_of_target(self.real))
     
     def get_metric_value(self):
         return precision_score(self.real, self.pred, average='weighted', zero_division=0)
