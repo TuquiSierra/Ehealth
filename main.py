@@ -10,8 +10,8 @@ import torch
 import pickle
 
 
-TAGS = ['B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'V_C', 'V_A', 'V_P', 'V_R', 'O', 'V' ] 
-LETTERS = string.printable + 'áéíóúÁÉÍÓÚñüö'
+TAGS = [None, 'B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'O', 'V' ] 
+LETTERS = [ None ] + list(string.printable + 'áéíóúÁÉÍÓÚñüö')
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     file = './2021/ref/training/medline.1200.es.txt'
     data = SentenceDataset(file, transform=lambda x : sentence_to_tensor(x, bert_embeddings, postags), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
-    n = MyLSTM(50, 50, len(TAGS), 113, 50 )
+    n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     metrics = {

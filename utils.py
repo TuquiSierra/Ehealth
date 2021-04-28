@@ -3,7 +3,7 @@ import torch
 import string
 
 
-LETTERS = string.printable + 'áéíóúÁÉÍÓÚñüö'
+LETTERS = [ None ] + list(string.printable + 'áéíóúÁÉÍÓÚñüö')
 
 def my_collate_fn(data):
     def reduce_fn(acum, value):
