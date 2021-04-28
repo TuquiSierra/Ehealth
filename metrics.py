@@ -103,3 +103,17 @@ class F1Score:
         precision = self.precision(y_pred, y_true)
         recall = self.recall(y_pred, y_true)
         return 2 * ((precision * recall) / (precision + recall + self.epsilon))
+    
+
+class Metric:
+    def __init__(self):
+        raise NotImplementedError
+    
+    def compute_metric(self, pred, real):
+        raise NotImplementedError
+    
+    def merge(self, acum, new):
+        raise NotImplementedError
+    
+    def sintetize(self, value):
+        return value
