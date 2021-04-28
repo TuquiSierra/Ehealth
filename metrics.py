@@ -169,6 +169,10 @@ class MyPrecission(Metric):
     def add_data(self, pred, real):
         self.pred.extend(pred.argmax(1))
         self.real.extend(real)
+        print(type(self.pred))
+        print(type(self.real))
+        print(len(self.pred))
+        print(len(self.real))
     
     def get_metric_value(self):
         return precision_score(self.real, self.pred, average='weighted', zero_division=0)
