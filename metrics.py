@@ -173,14 +173,6 @@ class MyPrecission(Metric):
         
     
     def get_metric_value(self):
-        print(type(self.pred))
-        print(type(self.real))
-        print(len(self.pred))
-        print(len(self.real))
-        print(type_of_target(self.pred))
-        print(type_of_target(self.real))
-        print(self.pred)
-        print(self.real)
         return precision_score(self.real, self.pred, average='weighted', zero_division=0)
 
 class MyRecall(Metric):
