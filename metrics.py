@@ -156,8 +156,8 @@ class MyF1Score(Metric):
         self.real = []
     
     def add_data(self, pred, real):
-        self.pred.extend(map(pred.argmax(1)))
-        self.real.extend(map(real))
+        self.pred.extend(map(int, pred.argmax(1)))
+        self.real.extend(map(int, real))
     
     def get_metric_value(self):
         return f1_score(self.real, self.pred, average='weighted', zero_division=0)
