@@ -5,20 +5,20 @@ from tqdm import tqdm
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def __summarize_metric(summaries, metric):
+def __summarize_metric(summaries, metric_name, metric):
     loss_avg_per_epoch = []
     for epoch_summary in summaries:
         epoch_loss = 0
         for batch_summary in epoch_summary:
-            epoch_loss += batch_summary[metric]
+            epoch_loss += batch_summary[metric_name]
         loss_avg_per_epoch.append(epoch_loss/len(epoch_summary))
     return loss_avg_per_epoch
 
 def __plotting_metrics(summary, metrics):
     _, axs = plt.subplots(len(metrics) + 1)
-    for i, metric in enumerate(list(metrics.keys()) + ['loss']):
-        axs[i].set_title(metric)
-        axs[i].plot(__summarize_metric(summary, metric))
+    for i, metric_name, metric in enumerate(list(metrics.items()) + ['loss']):
+        axs[i].set_title(metric_name)
+        axs[i].plot(__summarize_metric(summary, metric_name, metric))
     plt.subplots_adjust(hspace=1.0)
     plt.show()
 
@@ -63,8 +63,8 @@ def epoch_train(dataloader, model, loss_fn, optimizer, metrics):
         loss = loss.item()
         batch_summary['loss'] = loss
         if metrics:
-            for name, metric_function in metrics.items():
-                batch_summary[name] = metric_function(pred, y)
+            for name, metric in metrics.items():
+                batch_summary[name] = metric.compute_metric(pred, y)
         summary.append(batch_summary)
 
         cont += len(X)

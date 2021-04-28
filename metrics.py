@@ -109,11 +109,9 @@ class Metric:
     def __init__(self):
         raise NotImplementedError
     
-    def compute_metric(self, pred, real):
+    def add_data(self, pred, real):
         raise NotImplementedError
     
-    def merge(self, acum, new):
+    def get_metric_value(self):
         raise NotImplementedError
-    
-    def sintetize(self, value):
-        return value
+
