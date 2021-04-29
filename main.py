@@ -2,12 +2,20 @@ from data import SentenceDataset
 from training import train
 from torch.utils.data import DataLoader
 from LSTMnn import MyLSTM
-from utils import sentence_to_tensor, my_collate_fn, label_to_tensor
+from utils import sentence_to_tensor, my_collate_fn, label_to_tensor, get_weights
 from metrics import MyAccuracy, MyAccuracyAll, MyF1Score, MyPrecission, MyRecall
 import torch.nn as nn
 import string
 import torch
 import pickle
+
+
+def counting_labels(data_loader, labels):
+    count = { label : 0 for label in labels }
+    for _, y in data_loader:
+        for label in y:
+            count[int(label)] += 1
+    return count
 
 
 TAGS = [None, 'B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'O', 'V' ] 
@@ -32,6 +40,10 @@ if __name__ == '__main__':
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
     dev_data_loader = DataLoader(dev_data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
 
+    data_loader_to_count = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+    weights = get_weights(data_loader_to_count, range(len(TAGS)))
+
+    criterion = nn.CrossEntropyLoss(weight=weights)
     n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)

@@ -37,5 +37,25 @@ def line_to_tensor(line):
     tensor = torch.zeros(len(line), len(LETTERS))
     for i, c in enumerate(line):
         tensor[i][letter_to_index(c)] = 1
-    
     return tensor
+
+def get_weights(data_loader, labels):
+    counted_labels = counting_labels(data_loader, labels)
+    total_labels = sum(list(counted_labels.values()))
+    weights = []
+    for value in counted_labels.values():
+        w = 0
+        try:
+            w = total_labels / value
+        except:
+            w = 0
+        weights.append(w)
+    weights = torch.tensor(weights)
+    return weights
+
+def counting_labels(data_loader, labels):
+    count = { label : 0 for label in labels }
+    for _, y in data_loader:
+        for label in y:
+            count[int(label)] += 1
+    return count
