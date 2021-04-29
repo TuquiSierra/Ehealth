@@ -47,6 +47,7 @@ if __name__ == '__main__':
     n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
+    
     metrics = {
         'acc' : MyAccuracy,
         'acc2' : MyAccuracyAll,
@@ -54,4 +55,4 @@ if __name__ == '__main__':
         'recall' : MyRecall,
         'f1': MyF1Score
     }
-    train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth', validate=dev_data_loader, metrics=metrics)
+    train(data_loader, n, criterion, optimizer, 10, filename='test_lstm.pth', validate=dev_data_loader, metrics=metrics)

@@ -46,11 +46,11 @@ def __prepare_metrics(metrics):
 
 def update_learning_rate(epoch, total_epoch, optimizer):
     lrs = [1e3, 1e2, 1e1, 1e0, 1e-1, 1e-2, 1e-3]
-    percents = [-1, 20, 50, 70, 90, 95, 100]
+    percents = [0, 15, 30, 45, 65, 80, 90]
     epoch_percent = epoch * 100 / total_epoch
     lr = 0
     for i, p in enumerate(percents):
-        if epoch_percent > p:
+        if epoch_percent >= p:
             lr = lrs[i]
         else:
             break
