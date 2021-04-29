@@ -28,7 +28,7 @@ def __plotting_metrics(summary, validate):
     if len(validate) > 0:
         _, axs2 = plt.subplots(len(summary), squeeze=False, figsize=(15, 15))
         for i, (metric_name, metric_values) in enumerate(summary.items()):
-            axs2[i][0].set_title(metric_name)
+            axs2[i][0].set_title(f"{metric_name}_dev")
             axs2[i][0].plot(metric_values)
 
     plt.subplots_adjust(hspace=1.0)
