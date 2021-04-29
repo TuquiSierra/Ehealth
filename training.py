@@ -19,12 +19,18 @@ class ComputeLoss:
         return self.current_loss / self.dataset_len
 
 
-def __plotting_metrics(summary):
-    fig, axs = plt.subplots(len(summary), squeeze=False, figsize=(15, 15))
-    # fig.set_size_inches(10, 20)
+def __plotting_metrics(summary, validate):
+    _, axs1 = plt.subplots(len(summary), squeeze=False, figsize=(15, 15))
     for i, (metric_name, metric_values) in enumerate(summary.items()):
-        axs[i][0].set_title(metric_name)
-        axs[i][0].plot(metric_values)
+        axs1[i][0].set_title(metric_name)
+        axs1[i][0].plot(metric_values)
+
+    if len(validate) > 0:
+        _, axs2 = plt.subplots(len(summary), squeeze=False, figsize=(15, 15))
+        for i, (metric_name, metric_values) in enumerate(summary.items()):
+            axs2[i][0].set_title(metric_name)
+            axs2[i][0].plot(metric_values)
+
     plt.subplots_adjust(hspace=1.0)
     plt.show()
 
@@ -37,10 +43,15 @@ def __prepare_metrics(metrics):
     return metrics
 
 
-def train(dataloader, model, loss_fn, optimizer, epoch_number, validate=False, filename=None, save_every=None, metrics=None):
+def train(dataloader, model, loss_fn, optimizer, epoch_number, validate=None, filename=None, save_every=None, metrics=None):
     save_every = epoch_number if save_every is None else save_every
     metrics = __prepare_metrics(metrics)
     summary = {metric_name : [] for metric_name in metrics.keys()}
+    validate_summary = {}
+    if validate:
+        for metric_name in metrics.keys():
+            validate_summary[metric_name] = []
+
     for i in range(epoch_number):
         print(f"\nEpoch {i+1}\n-------------------------------------")
         epoch_metrics = epoch_train(
@@ -51,11 +62,14 @@ def train(dataloader, model, loss_fn, optimizer, epoch_number, validate=False, f
         if (i+1) % save_every == 0 and filename:
             name_to_save = f'{filename}_{i + 1}'
             torch.save(model.state_dict(), name_to_save)
-
         if validate:
-            epoch_test(dataloader, model, loss_fn)
+            val_epoch_metric = epoch_test(validate, model, loss_fn, metrics)
+            for metric_name, metric_calculator in val_epoch_metric.items():
+                validate_summary[metric_name].append(metric_calculator.get_metric_value())
 
-    __plotting_metrics(summary)
+
+
+    __plotting_metrics(summary, validate_summary)
     print("Train Done!")
 
 
@@ -89,8 +103,19 @@ def epoch_train(dataloader, model, loss_fn, optimizer, metrics):
     return metrics_calculators
 
 
-def epoch_test(dataloader, model, loss_fn):
+def epoch_test(dataloader, model, loss_fn, metrics):
+    metrics_calculators = {metric_name : metric() for metric_name, metric in metrics.items()}
     with torch.no_grad():
         for X, y in dataloader:
             pred = model(X)
-            test_loss = loss_fn(pred, y)
+            pred = pred.to(DEVICE)
+            y = y.view(-1, 1).squeeze(1)
+            y = y.to(DEVICE)
+            loss = loss_fn(pred, y)
+            loss = loss.item()
+            for metric_name, metric_calculator in metrics_calculators.items():
+                if metric_name == 'loss':
+                    metric_calculator.add_data(loss)
+                else:
+                    metric_calculator.add_data(pred, y)
+        return metrics_calculators

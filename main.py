@@ -16,14 +16,22 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 bert_embeddings = pickle.load(open('bert_embeddings_v2.data', 'rb'))
-postags=pickle.load(open('postag.data', 'rb'))
+bert_embeddings_dev = pickle.load(open('bert_embeddings_dev_v2.data', 'rb'))
+postags = pickle.load(open('postag.data', 'rb'))
+postags_dev = pickle.load(open('postag_dev.data', 'rb'))
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005
 
 if __name__ == '__main__':
     file = './2021/ref/training/medline.1200.es.txt'
+    file_dev = './2021/eval/training/scenario1-main/output.txt'
+
     data = SentenceDataset(file, transform=lambda x : sentence_to_tensor(x, bert_embeddings, postags), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
+    dev_data = SentenceDataset(file_dev, transform=lambda x : sentence_to_tensor(x, bert_embeddings_dev, postags_dev), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
+
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+    dev_data_loader = DataLoader(dev_data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+
     n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
@@ -34,4 +42,4 @@ if __name__ == '__main__':
         'recall' : MyRecall,
         'f1': MyF1Score
     }
-    train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth', metrics=metrics)
+    train(data_loader, n, criterion, optimizer, 5, filename='test_lstm.pth', validate=dev_data_loader, metrics=metrics)
