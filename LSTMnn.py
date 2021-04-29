@@ -32,8 +32,15 @@ class MyLSTM(nn.Module):
         self.sentence_lstm = nn.LSTM(
             input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True)
 
-        self.output_layer = nn.Linear(
-            self.main_hidden_size*2, self.output_size)
+        self.output_layer = nn.Sequential(
+            nn.Linear(self.main_hidden_size*2, 100),
+            nn.ReLU(),
+            nn.Linear(100, 50),
+            nn.ReLU(),
+            nn.Linear(50, self.output_size)
+        )
+        # self.output_layer = nn.Linear(
+        #     self.main_hidden_size*2, self.output_size)
 
     def __init_main_hidden(self, batch_size):
         hidden_state = torch.randn(2, batch_size, self.main_hidden_size)

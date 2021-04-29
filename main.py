@@ -44,9 +44,11 @@ if __name__ == '__main__':
     weights = get_weights(data_loader_to_count, range(len(TAGS)))
 
     criterion = nn.CrossEntropyLoss(weight=weights)
-    n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
+    n = MyLSTM(100, 100, len(TAGS), len(LETTERS), 100 )
     n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
+    torch.optim.RMSprop
+    torch.optim.Adam
     
     metrics = {
         'acc' : MyAccuracy,
