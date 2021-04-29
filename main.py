@@ -8,6 +8,7 @@ import torch.nn as nn
 import string
 import torch
 import pickle
+import re
 
 
 TAGS = [None, 'B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'O', 'V' ] 
@@ -20,9 +21,109 @@ postags=pickle.load(open('postag.data', 'rb'))
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005
 
+class Output:
+    # Types
+    CONCEPT = 'Concept'
+    ACTION = 'Action'
+    PREDICATE = 'Predicate'
+    REFERENCE = 'Reference'
+
+    def __init__(self):
+        self.T = []
+        self.R = []
+
+    def __str__(self):
+        items = []
+        for i, t in enumerate(self.T):
+            items.append(f"T{i+1}\t{t[1][0]}\t{t[1][1]}\t{t[1][2]}")
+        return '\n'.join(items)
+
+    def add_T(self, i, typ, pos, words):
+        self.T.append((i,(typ,pos, words)))
+
+def translate_sentences(sentences):
+    out = Output()
+
+    def map_type(tag):
+        if re.match('._C', tag):
+            return Output().CONCEPT
+        if re.match('._A', tag):
+            return Output().ACTION
+        if re.match('._P', tag):
+            return Output().PREDICATE
+        if re.match('._R', tag):
+            return Output().REFERENCE
+
+    index = 0
+    for sentence in sentences[:5]:
+        s = re.sub(' +', ' ', sentence[0])
+        tags = sentence[1]
+        s = s.split(' ')
+        simple_tags = ''.join([re.sub('_.', '', t) for t in tags])
+        start = [index]
+        for i in range(1,len(s)):
+            start.append(start[i-1] + len(s[i-1]) + 1)
+            print(s[i-1])
+            s[i-1] = re.sub(',|;|:|\.', '', s[i-1])
+        index = start[-1] + len(s[-1]) + 1
+        s[-1] = re.sub(',|;|:|\.', '', s[-1])
+        
+        # Simple entities
+        for x in re.finditer('U', simple_tags):
+            out.add_T(start[x.span()[0]], map_type(tags[x.span()[0]]), f'{start[x.span()[0]]} {start[x.span()[0]] + len(s[x.span()[0]])}', f'{s[x.span()[0]]}')
+            # print(f'{start[x.span()[0]]} {start[x.span()[0]] + len(s[x.span()[0]])} {s[x.span()[0]]}')
+
+        # Continuous entities
+        for x in re.finditer('(B)(I*)(L)', simple_tags):
+            positions = []
+            words = []
+            for i in range(x.span()[0],x.span()[1]):
+                words.append(s[i])
+                positions.append(f'{start[i]} {start[i] + len(s[i])}')
+            out.add_T(start[x.span()[0]],map_type(tags[x.span()[0]]), ';'.join(positions), ' '.join(words))
+            # print(f"{';'.join(positions)} {' '.join(words)}")
+
+        # Discontinuos entities with V at start
+        for x in re.finditer('(V+)((I*LO*)+)(I*L)', simple_tags):
+            span = x.span()
+            positions = [f'{start[span[0]]} {start[span[0]] + len(s[span[0]])}']
+            words = [s[span[0]]]
+            for i in range(span[0]+1,span[1]):
+                if simple_tags[i] == 'L':
+                    words.append(s[i])
+                    positions.append(f'{start[i]} {start[i] + len(s[i])}')
+                    out.add_T(start[x.span()[0]], map_type(tags[x.span()[0]]), ';'.join(positions), ' '.join(words))
+                    # print(f"{';'.join(positions)} {' '.join(words)}")
+                    positions = [f'{start[span[0]]} {start[span[0]] + len(s[span[0]])}']
+                    words = [s[span[0]]]
+                elif simple_tags[i] == 'I':
+                    words.append(s[i])
+                    positions.append(f'{start[i]} {start[i] + len(s[i])}')
+
+        # Discontinuos entities with V at end
+        for x in re.finditer('((BO)+)(B)(V+)', simple_tags):
+            span = x.span()
+            starts = []
+            positions = []
+            words = []
+            for i in range(span[0]+1,span[1]):
+                if simple_tags[i] == 'B':
+                    starts.append((i, (f'{start[i]} {start[i] + len(s[i])}',s[i])))
+                elif simple_tags[i] == 'V':
+                    words.append(s[i])
+                    positions.append(f'{start[i]} {start[i] + len(s[i])}')
+            words = ' '.join(words)
+            positions = ';'.join(positions)
+            for i, s in starts:
+                out.add_T(start[i], map_type(tags[i]), f'{s[1][0]};{positions}', f'{s[1][1]} {words}')
+                # print(f'{s[0]};{positions} {s[1]} {words}')
+    return out
+
 if __name__ == '__main__':
     file = './2021/ref/training/medline.1200.es.txt'
+
     data = SentenceDataset(file, transform=lambda x : sentence_to_tensor(x, bert_embeddings, postags), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
+    print(translate_sentences(data.data))
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
     n = MyLSTM(50, 50, len(TAGS), len(LETTERS), 50 )
     n.to(DEVICE)
