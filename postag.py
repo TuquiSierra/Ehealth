@@ -1,3 +1,4 @@
+from spacy.tokenizer import Tokenizer
 import spacy
 import pickle
 
@@ -6,6 +7,7 @@ DEP_LIST = ["ROOT", "acl", "acomp", "advcl", "advmod", "agent", "amod", "appos",
 
 def pos_tag(text):
     nlp=spacy.load('es_core_news_sm')
+    nlp.tokenizer = Tokenizer(nlp.vocab)
     doc =nlp(text)
     tags=[]
     for token in doc:
@@ -20,12 +22,12 @@ def strip_punctuation(text):
     return text
 
 
-def pickle_postag(collection):
+def pickle_postag(collection, file_name):
     postags={}
     for sentence in collection:
         postags[sentence.text]=pos_tag(strip_punctuation(" ".join(sentence.text.split())))
         
-    filename=open('postag.data', 'wb')
+    filename=open(f'{file_name}.data', 'wb')
     pickle.dump(postags,filename)
     filename.close()
     

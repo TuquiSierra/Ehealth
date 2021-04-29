@@ -148,4 +148,5 @@ dmypy.json
 bert_embeddings.data
 bert_embeddings_without_punct_mark.data
 bert_embeddings_v2.data
+bert_embeddings_dev_v2.data
 *.pth*
