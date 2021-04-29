@@ -30,7 +30,7 @@ class MyLSTM(nn.Module):
         # Sentence analysis
         lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE + POS_SIZE
         self.sentence_lstm = nn.LSTM(
-            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True)
+            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True, num_layers=4)
 
         self.output_layer = nn.Sequential(
             nn.Linear(self.main_hidden_size*2, 100),
@@ -43,8 +43,8 @@ class MyLSTM(nn.Module):
         #     self.main_hidden_size*2, self.output_size)
 
     def __init_main_hidden(self, batch_size):
-        hidden_state = torch.randn(2, batch_size, self.main_hidden_size)
-        cell_state = torch.randn(2, batch_size, self.main_hidden_size)
+        hidden_state = torch.randn(8, batch_size, self.main_hidden_size)
+        cell_state = torch.randn(8, batch_size, self.main_hidden_size)
         return (hidden_state.to(DEVICE), cell_state.to(DEVICE))
 
     def __init_secondary_hidden(self, batch_size):
