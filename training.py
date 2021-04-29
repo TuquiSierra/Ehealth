@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from math import ceil
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -43,6 +44,22 @@ def __prepare_metrics(metrics):
     return metrics
 
 
+def update_learning_rate(epoch, total_epoch, optimizer):
+    lrs = [1e3, 1e2, 1e1, 1e0, 1e-1, 1e-2, 1e-3]
+    percents = [-1, 20, 50, 70, 90, 95, 100]
+    epoch_percent = epoch * 100 / total_epoch
+    lr = 0
+    for i, p in enumerate(percents):
+        if epoch_percent > p:
+            lr = lrs[i]
+        else:
+            break
+
+    print(lr)
+    for g in optimizer.param_groups:
+        g['lr'] = lr
+
+
 def train(dataloader, model, loss_fn, optimizer, epoch_number, validate=None, filename=None, save_every=None, metrics=None):
     save_every = epoch_number if save_every is None else save_every
     metrics = __prepare_metrics(metrics)
@@ -58,6 +75,7 @@ def train(dataloader, model, loss_fn, optimizer, epoch_number, validate=None, fi
             dataloader, model, loss_fn, optimizer, metrics)
         for metric_name, metric_calculator in epoch_metrics.items():
             summary[metric_name].append(metric_calculator.get_metric_value())
+        update_learning_rate(i, epoch_number, optimizer)
 
         if (i+1) % save_every == 0 and filename:
             name_to_save = f'{filename}_{i + 1}'
