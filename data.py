@@ -4,7 +4,7 @@ from scripts.anntools import Collection
 from tagger import get_tag_list
 from torch.utils.data import Dataset, Sampler, BatchSampler
 from torch import split, tensor
-from random import shuffle
+from random import shuffle, randint, choice
 from functools import reduce
 
 
@@ -105,7 +105,10 @@ class RelationDataset(Dataset):
     def __init__(self, file, transform=None, target_transform=None):
         c = Collection()
         c.load(Path(file))
-        self.data = RelationDataset.__get_pair_of_words_with_relation(c)
+        relations = RelationDataset.__get_pair_of_words_with_relation(c)
+        no_relations = RelationDataset.__get_no_related_entities(c, len(relations) // 10)
+        no_relations = list(map(lambda x : (x, 'None'), no_relations))
+        self.data = relations + no_relations
         self.transform = transform
         self.target_transform = target_transform
     
@@ -128,3 +131,22 @@ class RelationDataset(Dataset):
                 new_relation = ((relation.from_phrase.text, relation.to_phrase.text), relation.label)
                 relations.append(new_relation)
         return relations
+    
+    @staticmethod
+    def __get_no_related_entities(collection, N):
+        no_related_entities = []
+        number_of_sentences = len(collection.sentences)
+        sentences_indexes = list(range(number_of_sentences))
+        shuffle(sentences_indexes)
+        for index in sentences_indexes:
+            sentence = collection.sentences[index]
+            relations = {(r.from_phrase, r.to_phrase) : 1 for r in sentence.relations}
+            entities = list(map(lambda kp : kp.text, sentence.keyphrases))
+            from_entity = choice(entities)
+            to_entity = choice(entities)
+            if not (from_entity, to_entity) in relations:
+                no_related_entities.append((from_entity, to_entity))
+            if len(no_related_entities) > N:
+                break
+        return no_related_entities
+
