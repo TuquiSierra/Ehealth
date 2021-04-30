@@ -30,4 +30,4 @@ class RelationTagger(nn.Module):
         samples_tensor = torch.stack(samples)
 
         output = self.output_layer(samples_tensor)
-        return output
+        return softmax(output)
