@@ -109,9 +109,9 @@ class MyLSTM(nn.Module):
 
         tags = self.output_layer(words)
 
-        tags_probs = softmax(tags, 1)
+        # tags_probs = softmax(tags, 1)
 
-        return tags_probs
+        return tags#tags_probs
 
 
     def __get_significants_sequence(self, input, sizes):
