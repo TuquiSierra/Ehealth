@@ -29,9 +29,16 @@ def sentence_to_tensor(sentence, bert_embeddings, postags):
     return (sentence_len, words_representation, bert_vectors, postag_vectors)
 
 
-def pairs_to_tensor(entities):
-    first_ent=torch.tensor(pairs_postag(entities[0]))
-    second_ent=torch.tensor(pairs_postag(entities[1]))
+def pairs_to_tensor(entities, embeddings):
+    first_ent, second_ent = None, None
+    try:
+        first_ent=torch.tensor(embeddings[entities[0]])
+    except:
+        first_ent = torch.tensor(pairs_postag(entities[0]))
+    try:
+        second_ent=torch.tensor(embeddings[entities[1]])
+    except:
+        second_ent = torch.tensor(pairs_postag(entities[1]))
     return (first_ent, second_ent)
         
 
