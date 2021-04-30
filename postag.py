@@ -43,4 +43,16 @@ def pickle_postag(collection, file_name):
     filename.close()
     
 
+def pickle_pairs(items, file_name):
+    postags={}
+    for item in items:
+        ent, _ =item
+        postags[ent[0]]=pairs_postag(ent[0])
+        postags[ent[1]]=pairs_postag(ent[1])
+
+    filename=open(f'{file_name}.data', 'wb')
+    pickle.dump(postags,filename)
+    filename.close()
+    
+        
         

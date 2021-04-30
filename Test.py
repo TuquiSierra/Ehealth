@@ -68,6 +68,9 @@ def main():
     # c=Collection()
     # c.load(Path("./2021/ref/training/medline.1200.es.txt"))
     # pickle_postag(c)
+    
+    
+    
     file = './2021/ref/training/medline.1200.es.txt'
     data = SentenceDataset(file, transform=sentence_to_tensor, target_transform=lambda l : torch.stack(tuple(map(label_to_tensor, l))))
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
