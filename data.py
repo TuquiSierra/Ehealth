@@ -99,3 +99,32 @@ def chunk(list_to_split, batch_size):
     for i in range(0,len(list_to_split), batch_size):
         result.append(list_to_split[i : i + batch_size])
     return result
+
+
+class RelationDataset(Dataset):
+    def __init__(self, file, transform=None, target_transform=None):
+        c = Collection()
+        c.load(Path(file))
+        self.data = RelationDataset.__get_pair_of_words_with_relation(c)
+        self.transform = transform
+        self.target_transform = target_transform
+    
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        sentence, tags = self.data[index]
+        if self.transform:
+            sentence = self.transform(sentence)
+        if self.target_transform:
+            tags = self.target_transform(tags)
+        return sentence, tags
+    
+    @staticmethod
+    def __get_pair_of_words_with_relation(collection):
+        relations = []
+        for sentence in collection.sentences:
+            for relation in sentence.relations:
+                new_relation = ((relation.from_phrase.text, relation.to_phrase.text), relation.label)
+                relations.append(new_relation)
+        return relations
