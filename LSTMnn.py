@@ -7,7 +7,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 BERT_VECTOR_SIZE = 768
-POS_SIZE=4
+POS_SIZE=19
 
 class MyLSTM(nn.Module):
     def __init__(self, word_dimensions, main_hidden_size, output_size, number_of_letters, secondary_hidden_size):
