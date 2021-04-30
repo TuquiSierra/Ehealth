@@ -1,4 +1,6 @@
 import torch
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics._base import type_of_target
 
 class Accuracy:
     """
@@ -103,3 +105,85 @@ class F1Score:
         precision = self.precision(y_pred, y_true)
         recall = self.recall(y_pred, y_true)
         return 2 * ((precision * recall) / (precision + recall + self.epsilon))
+    
+
+class Metric:
+    def __init__(self):
+        raise NotImplementedError
+    
+    def add_data(self, pred, real):
+        raise NotImplementedError
+    
+    def get_metric_value(self):
+        raise NotImplementedError
+    
+class MyAccuracy(Metric):
+    def __init__(self):
+        self.total = 0
+        self.correct = 0
+    
+    def add_data(self, pred, real):
+        pred = pred.argmax(1)
+        for i in range(len(real)):
+            if real[i] == 17:
+                continue
+            self.total += 1
+            if real[i] == pred[i]:
+                self.correct += 1
+        
+    
+    def get_metric_value(self):
+        return self.correct * 100 / self.total
+
+class MyAccuracyAll(Metric):
+    def __init__(self):
+        self.total = 0
+        self.correct = 0
+    
+    def add_data(self, pred, real):
+        pred = pred.argmax(1)
+        for i in range(len(real)):
+            self.total += 1
+            if real[i] == pred[i]:
+                self.correct += 1
+        
+    def get_metric_value(self):
+        return self.correct * 100 / self.total
+
+class MyF1Score(Metric):
+    def __init__(self):
+        self.pred = []
+        self.real = []
+    
+    def add_data(self, pred, real):
+        self.pred.extend(map(int, pred.argmax(1)))
+        self.real.extend(map(int, real))
+    
+    def get_metric_value(self):
+        return f1_score(self.real, self.pred, average='weighted', zero_division=0)
+
+class MyPrecission(Metric):
+    def __init__(self):
+        self.pred = []
+        self.real = []
+    
+    def add_data(self, pred, real):
+        self.pred.extend(map(int, pred.argmax(1)))
+        self.real.extend(map(int, real))
+        
+    
+    def get_metric_value(self):
+        return precision_score(self.real, self.pred, average='weighted', zero_division=0)
+
+class MyRecall(Metric):
+    def __init__(self):
+        self.pred = []
+        self.real = []
+    
+    def add_data(self, pred, real):
+        self.pred.extend(map(int, pred.argmax(1)))
+        self.real.extend(map(int, real))
+    
+    def get_metric_value(self):
+        return recall_score(self.real, self.pred, average='weighted', zero_division=0)
+

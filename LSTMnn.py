@@ -1,15 +1,17 @@
 import torch
 from torch import nn
 from torch.nn.functional import softmax
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence, PackedSequence
 
+
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 BERT_VECTOR_SIZE = 768
 POS_SIZE=19
 
-
 class MyLSTM(nn.Module):
     def __init__(self, word_dimensions, main_hidden_size, output_size, number_of_letters, secondary_hidden_size):
+        print(DEVICE)
         super(MyLSTM, self).__init__()
         self.word_dimensions = word_dimensions
         self.main_hidden_size = main_hidden_size
@@ -20,6 +22,7 @@ class MyLSTM(nn.Module):
         # Word representation netword
         self.word_lstm = nn.LSTM(input_size=self.number_of_letters,
                                  hidden_size=secondary_hidden_size, batch_first=True)
+        self.word_lstm = self.word_lstm.to(DEVICE)
 
         self.word_linear = nn.Linear(
             secondary_hidden_size, word_dimensions)
@@ -27,19 +30,26 @@ class MyLSTM(nn.Module):
         # Sentence analysis
         lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE + POS_SIZE
         self.sentence_lstm = nn.LSTM(
-            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True)
+            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True, num_layers=4)
 
-        self.output_layer = nn.Linear(
-            self.main_hidden_size*2, self.output_size)
+        self.output_layer = nn.Sequential(
+            nn.Linear(self.main_hidden_size*2, 100),
+            nn.ReLU(),
+            nn.Linear(100, 50),
+            nn.ReLU(),
+            nn.Linear(50, self.output_size)
+        )
+        # self.output_layer = nn.Linear(
+        #     self.main_hidden_size*2, self.output_size)
 
     def __init_main_hidden(self, batch_size):
-        hidden_state = torch.randn(2, batch_size, self.main_hidden_size)
-        cell_state = torch.randn(2, batch_size, self.main_hidden_size)
-        return (hidden_state, cell_state)
+        hidden_state = torch.randn(8, batch_size, self.main_hidden_size)
+        cell_state = torch.randn(8, batch_size, self.main_hidden_size)
+        return (hidden_state.to(DEVICE), cell_state.to(DEVICE))
 
     def __init_secondary_hidden(self, batch_size):
-        hidden_state = torch.randn(1, batch_size, self.secondary_hidden_size)
-        cell_state = torch.randn(1, batch_size, self.secondary_hidden_size)
+        hidden_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
+        cell_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
         return (hidden_state, cell_state)
 
     def forward(self, X):
@@ -62,8 +72,11 @@ class MyLSTM(nn.Module):
                 postag_vectors.append(torch.tensor(postag))
 
         word_tensors = pad_sequence(word_tensors, batch_first=True)
+        word_tensors = word_tensors.to(DEVICE)
+        word_sizes = torch.tensor(word_sizes)
         word_tensors_packed = pack_padded_sequence(
             word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        wrod_tensors_packed = word_tensors_packed.to(DEVICE)
 
         hidden = self.__init_secondary_hidden(len(word_sizes))
         output, _ = self.word_lstm(word_tensors_packed, hidden)
@@ -74,6 +87,7 @@ class MyLSTM(nn.Module):
         bert_embeddings = torch.stack(bert_vectors).squeeze(1)
         postags=torch.stack(postag_vectors).squeeze(1)
         word_vectors = torch.cat((word_representation, bert_embeddings, postags), dim=1)
+        word_vectors = word_vectors.to(DEVICE)
 
         sentences_tensors = []
         count = 0

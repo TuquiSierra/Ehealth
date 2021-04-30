@@ -57,18 +57,13 @@ def sentence_to_tensor(sentence):
         
     return (sentence_len, words_representation, bert_vectors, postag_vectors)
     
-def my_collate_fn(data):
-    def reduce_fn(acum, value):
-        return (acum[0] + [value[0]], acum[1] + [value[1]])
-    samples, targets = reduce(reduce_fn, data, ([], []))
-    targets = torch.cat(targets, dim=0).squeeze()
-    return samples, targets
 
 
 bert_embeddings = pickle.load(open('bert_embeddings_v2.data', 'rb'))
 postags=pickle.load(open('postag.data', 'rb'))
 criterion = nn.CrossEntropyLoss()
 learning_rate = 0.005
+DEVICE = "gpu:0" if torch.cuda.is_available() else "cpu"
 
 def main():
     # c=Collection()
@@ -78,6 +73,7 @@ def main():
     data = SentenceDataset(file, transform=sentence_to_tensor, target_transform=lambda l : torch.stack(tuple(map(label_to_tensor, l))))
     data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
     n = MyLSTM(50, 50, len(TAGS), 113, 50 )
+    n.to(DEVICE)
     optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     metrics = {
         'acc' : lambda pred, true : Accuracy()(pred, true),
