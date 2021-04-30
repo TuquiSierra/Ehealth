@@ -5,7 +5,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 
 
 BERT_VECTOR_SIZE = 768
-POS_SIZE=4
+POS_SIZE=19
 
 
 class MyLSTM(nn.Module):
