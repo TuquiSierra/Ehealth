@@ -1,6 +1,8 @@
 from functools import reduce
 import torch
 import string
+from itertools import combinations
+from postag import pairs_postag
 
 
 LETTERS = [ None ] + list(string.printable + 'áéíóúÁÉÍÓÚñüö')
@@ -23,9 +25,16 @@ def sentence_to_tensor(sentence, bert_embeddings, postags):
 
     bert_vectors = bert_embeddings[sentence]
     postag_vectors=postags[sentence]
-    #postag= pos_tag(strip_punctuation(" ".join(sentence.split())))
         
     return (sentence_len, words_representation, bert_vectors, postag_vectors)
+
+
+def pairs_to_tensor(p):
+    entities, _=p
+    first_ent=torch.tensor(pairs_postag(entities[0]))
+    second_ent=torch.tensor(pairs_postag(entities[1]))
+    return (first_ent, second_ent)
+        
 
 def label_to_tensor(label, all_labels):
     return torch.tensor([all_labels.index(label)])
@@ -59,3 +68,4 @@ def counting_labels(data_loader, labels):
         for label in y:
             count[int(label)] += 1
     return count
+

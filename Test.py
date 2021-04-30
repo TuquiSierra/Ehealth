@@ -53,7 +53,6 @@ def sentence_to_tensor(sentence):
 
     bert_vectors = bert_embeddings[sentence]
     postag_vectors=postags[sentence]
-    #postag= pos_tag(strip_punctuation(" ".join(sentence.split())))
         
     return (sentence_len, words_representation, bert_vectors, postag_vectors)
     
