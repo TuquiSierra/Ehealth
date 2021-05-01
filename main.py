@@ -20,8 +20,8 @@ def counting_labels(data_loader, labels):
     return count
 
 
-TAGS = [None, 'B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'O', 'V' ] 
-# TAGS = [None, 'None', 'is-a', 'same-as', 'has-property', 'part-of', 'causes', 'entails', 'in-time', 'in-place', 'in-context', 'subject', 'target', 'domain', 'arg']
+# TAGS = [None, 'B_C', 'I_C', 'L_C','B_A', 'I_A', 'L_A','B_P', 'I_P', 'L_P','B_R', 'I_R', 'L_R', 'U_C', 'U_A', 'U_P', 'U_R', 'O', 'V' ] 
+TAGS = [None, 'None', 'is-a', 'same-as', 'has-property', 'part-of', 'causes', 'entails', 'in-time', 'in-place', 'in-context', 'subject', 'target', 'domain', 'arg']
 LETTERS = [ None ] + list(string.printable + 'áéíóúÁÉÍÓÚñüö')
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -134,26 +134,26 @@ def translate_sentences(sentences):
 
 if __name__ == '__main__':
     file = './2021/ref/training/medline.1200.es.txt'
-    file_dev = './2021/eval/training/scenario1-main/output.txt'
+    # file_dev = './2021/eval/training/scenario1-main/output.txt'
 
-    data = SentenceDataset(file, transform=lambda x : sentence_to_tensor(x, bert_embeddings, postags), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
-    dev_data = SentenceDataset(file_dev, transform=lambda x : sentence_to_tensor(x, bert_embeddings_dev, postags_dev), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
+    # data = SentenceDataset(file, transform=lambda x : sentence_to_tensor(x, bert_embeddings, postags), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
+    # dev_data = SentenceDataset(file_dev, transform=lambda x : sentence_to_tensor(x, bert_embeddings_dev, postags_dev), target_transform=lambda l : torch.stack(tuple(map(lambda x: label_to_tensor(x, TAGS), l))))
 
-    # print(translate_sentences(data.data))
+    # # print(translate_sentences(data.data))
 
-    data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
-    dev_data_loader = DataLoader(dev_data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+    # data_loader = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+    # dev_data_loader = DataLoader(dev_data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
 
-    data_loader_to_count = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
-    weights = get_weights(data_loader_to_count, range(len(TAGS)))
+    # data_loader_to_count = DataLoader(data, batch_size=4, collate_fn=my_collate_fn, shuffle=True)
+    # weights = get_weights(data_loader_to_count, range(len(TAGS)))
 
-    criterion = nn.CrossEntropyLoss(weight=weights)
-    n = MyLSTM(100, 100, len(TAGS), len(LETTERS), 100 )
-    n.to(DEVICE)
+    # criterion = nn.CrossEntropyLoss(weight=weights)
+    # n = MyLSTM(100, 100, len(TAGS), len(LETTERS), 100 )
+    # n.to(DEVICE)
     # optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
     # # torch.optim.RMSprop
     # # torch.optim.Adam
-    optimizer = torch.optim.Adam(n.parameters(), lr = learning_rate)
+    # optimizer = torch.optim.Adam(n.parameters(), lr = learning_rate)
     
     metrics = {
         'acc' : MyAccuracy,
@@ -162,13 +162,13 @@ if __name__ == '__main__':
         'recall' : MyRecall,
         'f1': MyF1Score
     }
-    train(data_loader, n, criterion, optimizer, 10, filename='test_lstm.pth', validate=dev_data_loader, metrics=metrics)
-    # rd = RelationDataset(file, transform=lambda x : pairs_to_tensor(x, spacy_embeddings), target_transform=lambda x : label_to_tensor(x, TAGS))
-    # rdl = DataLoader(rd, batch_size=4, shuffle=True, collate_fn=my_collate_fn)
+    # train(data_loader, n, criterion, optimizer, 10, filename='test_lstm.pth', validate=dev_data_loader, metrics=metrics)
+    rd = RelationDataset(file, transform=lambda x : pairs_to_tensor(x, spacy_embeddings), target_transform=lambda x : label_to_tensor(x, TAGS))
+    rdl = DataLoader(rd, batch_size=4, shuffle=True, collate_fn=my_collate_fn)
 
-    # n = RelationTagger(96, len(TAGS))
-    # optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
-    # train(rdl, n, criterion, optimizer, 10, filename='test_lstm.pth', metrics=metrics)
+    n = RelationTagger(96, len(TAGS))
+    optimizer = torch.optim.SGD(n.parameters(), lr=learning_rate)
+    train(rdl, n, criterion, optimizer, 10, filename='test_lstm.pth', metrics=metrics)
     # b = next(iter(rdl))
     # print(type(b))
     # print(len(b))
