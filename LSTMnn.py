@@ -1,66 +1,130 @@
 import torch
 from torch import nn
+from torch.nn.functional import softmax
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence, PackedSequence
+
+
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+BERT_VECTOR_SIZE = 768
+POS_SIZE=19
 
 class MyLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, input_size_words, hidden_size_words, output_size_words):
+    def __init__(self, word_dimensions, main_hidden_size, output_size, number_of_letters, secondary_hidden_size):
+        print(DEVICE)
         super(MyLSTM, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
+        self.word_dimensions = word_dimensions
+        self.main_hidden_size = main_hidden_size
         self.output_size = output_size
-        self.input_size_words = input_size_words
-        self.hidden_size_words = hidden_size_words
-        self.output_size_words = output_size_words
+        self.number_of_letters = number_of_letters
+        self.secondary_hidden_size = secondary_hidden_size
 
-        self.lstm_embedding = nn.LSTM(input_size=input_size_words, hidden_size=hidden_size_words, batch_first=True, bidirectional=True)
-        self.linear_from_word = nn.Linear(2*hidden_size_words+178, input_size)
+        # Word representation netword
+        self.word_lstm = nn.LSTM(input_size=self.number_of_letters,
+                                 hidden_size=secondary_hidden_size, batch_first=True)
+        self.word_lstm = self.word_lstm.to(DEVICE)
 
-        self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, batch_first=True, bidirectional=True)
-        self.linear_to_tag_classes = nn.Linear(hidden_size*2, self.output_size)
+        self.word_linear = nn.Linear(
+            secondary_hidden_size, word_dimensions)
 
-        self.softmax = nn.LogSoftmax(dim=1)
+        # Sentence analysis
+        lstm_input_size = self.word_dimensions + BERT_VECTOR_SIZE + POS_SIZE
+        self.sentence_lstm = nn.LSTM(
+            input_size=lstm_input_size, hidden_size=self.main_hidden_size, batch_first=True, bidirectional=True, num_layers=4)
 
-    def init_hidden(self, batch_size):
-        hidden_state = torch.randn(2, batch_size, self.hidden_size)
-        cell_state = torch.randn(2, batch_size, self.hidden_size)
+        self.output_layer = nn.Sequential(
+            nn.Linear(self.main_hidden_size*2, 100),
+            nn.ReLU(),
+            nn.Linear(100, 50),
+            nn.ReLU(),
+            nn.Linear(50, self.output_size)
+        )
+        # self.output_layer = nn.Linear(
+        #     self.main_hidden_size*2, self.output_size)
+
+    def __init_main_hidden(self, batch_size):
+        hidden_state = torch.randn(8, batch_size, self.main_hidden_size)
+        cell_state = torch.randn(8, batch_size, self.main_hidden_size)
+        return (hidden_state.to(DEVICE), cell_state.to(DEVICE))
+
+    def __init_secondary_hidden(self, batch_size):
+        hidden_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
+        cell_state = torch.randn(1, batch_size, self.secondary_hidden_size).to(DEVICE)
         return (hidden_state, cell_state)
 
-    
-    def forward(self, input):
-        batch_size = input.shape[0]
-        
-        input = input.view(-1, 206, 113)
-        no_bert= input[:, :28,: ]
-        bert=input[:, -178:, :]
-        new_bert=torch.empty(bert.shape[0], 178)
-        
-        for i,word in enumerate(bert):
-            zeroes=torch.zeros(1, 113)
-            zeroes[0][0]=1
-            trans=torch.transpose(zeroes, 0, 1)
-            new_bert[i]=torch.matmul(word, trans).squeeze()
-            
-        
-        
-        hidden = self.init_hidden(no_bert.shape[0])
-        words, hidden = self.lstm_embedding(no_bert, hidden)
-        words = words.squeeze()[:, -1, :]
-        
-        
-        
-        #new_words=torch.empty(words.shape[0], self.hidden_size*2+178)
-        bert_words=torch.cat((new_bert, words), dim=1)
-        
-        bert_words = self.linear_from_word(bert_words)
-        bert_words = bert_words.view(batch_size, -1, 50)
-        hidden = self.init_hidden(bert_words.shape[0])
-        bert_words, _ = self.lstm(bert_words, hidden)
-        # words = words.squeeze()[:, -1, :]
-        bert_words = bert_words.reshape(-1, 100)
-        bert_words = self.linear_to_tag_classes(bert_words)
-        
-        tags = self.softmax(bert_words)
-        return tags
+    def forward(self, X):
+        batch_size = len(X)
+        sentences_sizes = list(map(lambda sample: sample[0], X))
+        word_sizes = []
+        word_tensors = []
+        bert_vectors = []
+        postag_vectors=[]
+
+        for sentence in X:
+            for word in sentence[1]:
+                word_sizes.append(word[0])
+                word_tensors.append(word[1])
+
+            for bert_vector in sentence[2]:
+                bert_vectors.append(torch.tensor(bert_vector))
+                
+            for postag in sentence[3]:
+                postag_vectors.append(torch.tensor(postag))
+
+        word_tensors = pad_sequence(word_tensors, batch_first=True)
+        word_tensors = word_tensors.to(DEVICE)
+        word_sizes = torch.tensor(word_sizes)
+        word_tensors_packed = pack_padded_sequence(
+            word_tensors, word_sizes, batch_first=True, enforce_sorted=False)
+        wrod_tensors_packed = word_tensors_packed.to(DEVICE)
+
+        hidden = self.__init_secondary_hidden(len(word_sizes))
+        output, _ = self.word_lstm(word_tensors_packed, hidden)
+        output, _ = pad_packed_sequence(output, batch_first=True)
+
+        word_representation = self.__get_significant_lstm_output(
+            output, word_sizes)
+        bert_embeddings = torch.stack(bert_vectors).squeeze(1)
+        postags=torch.stack(postag_vectors).squeeze(1)
+        word_vectors = torch.cat((word_representation, bert_embeddings, postags), dim=1)
+        word_vectors = word_vectors.to(DEVICE)
+
+        sentences_tensors = []
+        count = 0
+        for size in sentences_sizes:
+            sentences_tensors.append(word_vectors[0: size])
+            count += size
+
+        sentences_vectors = pad_sequence(sentences_tensors, batch_first=True)
+        sentences_vectors_packed = pack_padded_sequence(
+            sentences_vectors, sentences_sizes, batch_first=True, enforce_sorted=False)
+
+        hidden = self.__init_main_hidden(batch_size)
+        output, _ = self.sentence_lstm(sentences_vectors_packed, hidden)
+
+        output, _ = pad_packed_sequence(output, batch_first=True)
+
+        sequence_vectors = self.__get_significants_sequence(output, sentences_sizes)
+        words = torch.cat(sequence_vectors)
+
+        tags = self.output_layer(words)
+
+        # tags_probs = softmax(tags, 1)
+
+        return tags#tags_probs
 
 
-    # [number_of_sentences, number_of_words, word_feature]
-    # word -> [number_of_letters, features_letter]
+    def __get_significants_sequence(self, input, sizes):
+        sequences = []
+        pad_length = input.shape[1]
+        for i, size in enumerate(sizes):
+            sequences.append(input[i, :size, :])
+        return sequences
+
+    def __get_significant_lstm_output(self, input, lenghts):
+        representation_dims = input.shape[-1]
+        number_of_words = input.shape[0]
+        output = torch.zeros(number_of_words, representation_dims)
+        for i, lenght in enumerate(lenghts):
+            output[i] = input[i, lenght - 1]
+        return output
